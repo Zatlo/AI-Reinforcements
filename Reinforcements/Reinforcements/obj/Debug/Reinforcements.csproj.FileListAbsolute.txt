@@ -1,0 +1,6 @@
+D:\SteamFolder\steamapps\common\Mount & Blade II Bannerlord\Modules\Reinforcements\bin\Win64_Shipping_Client\Reinforcements.dll
+D:\SteamFolder\steamapps\common\Mount & Blade II Bannerlord\Modules\Reinforcements\bin\Win64_Shipping_Client\Reinforcements.pdb
+C:\Users\Zatlo\source\repos\Reinforcements\Reinforcements\obj\Debug\Reinforcements.csproj.CoreCompileInputs.cache
+C:\Users\Zatlo\source\repos\Reinforcements\Reinforcements\obj\Debug\Reinforcements.dll
+C:\Users\Zatlo\source\repos\Reinforcements\Reinforcements\obj\Debug\Reinforcements.pdb
+C:\Users\Zatlo\source\repos\Reinforcements\Reinforcements\obj\Debug\Reinforcements.csprojAssemblyReference.cache
