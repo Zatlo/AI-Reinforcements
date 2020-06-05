@@ -224,6 +224,7 @@ namespace Reinforcements
 
             }));
 
+/// Every tick this code runs
             //MapEvent.PlayerMapEvent.HasWinner
             CampaignEvents.MissionTickEvent.AddNonSerializedListener(this, new Action<float>(one => { //mission tick
 
@@ -231,6 +232,7 @@ namespace Reinforcements
                     return;*/
                 if (Mission.Current.Time > 10.0f)
                 {
+                    // respawns units based on if the count is < 10 of original & current logic maintains the original troop proportions
                     if (InitialAllyTroopCount - 9 > Mission.Current.PlayerTeam.ActiveAgents.Count() && !OriginalAllyReinforcements.IsEmpty())
                         spawnOriginalReinforcements(OriginalAllyReinforcements, true);
                     if (InitialEnemyTroopCount - 9 > Mission.Current.PlayerEnemyTeam.ActiveAgents.Count() && !OriginalEnemyReinforcements.IsEmpty())
@@ -323,6 +325,7 @@ namespace Reinforcements
 
 
 
+            // checks if mission neds to happen pt 2
             CampaignEvents.MissionStarted.AddNonSerializedListener(this, new Action<IMission>((one) =>
             {
                 //InformationManager.DisplayMessage(new InformationMessage("Mission started inside campaignSystem")); //inside the mission use this to wait to spawn
@@ -330,6 +333,7 @@ namespace Reinforcements
                 {
                     InformationManager.DisplayMessage(new InformationMessage("You hear the echo of " + (EnemyNearbyParties.Count()+AllyNearbyParties.Count()) + " parties in the distance!")); //debug
                     System.Diagnostics.Debug.WriteLine("Calculating first bigTimer");
+                    //
                     calculateFirstTime();
                     //
                 }
@@ -672,6 +676,7 @@ namespace Reinforcements
 
         }*/
 
+    /// 
         private static void getOriginalReinforcementsFirst(MBReadOnlyList<Agent> agentList, List<IAgentOriginBase> OriginListAJ, bool playerSide)
         {
             //check if current AJList unit is within involved parties
@@ -752,7 +757,9 @@ namespace Reinforcements
             for (int i = 0; i < MapEvent.PlayerMapEvent.InvolvedParties.Count(); i++) //gets original parties
             {
                 OriginalInvolvedParties.Add(MapEvent.PlayerMapEvent.InvolvedParties.ElementAt(i)); //now create a function that goes through all lists
-            } //gets original parties
+            } 
+            //gets original parties
+            // initially spawned enemy and allied troops - needed when supplier is recreated
             AllyactiveAgents = Mission.Current.PlayerTeam.ActiveAgents;
             EnemyactiveAgents = Mission.Current.PlayerEnemyTeam.ActiveAgents;
 
@@ -784,15 +791,18 @@ namespace Reinforcements
 
             }
 
+            // add the parties as participants to the battle - create the agent origin
             await addAllParties(); //move this before jlist add all parties to the game as involved need to remove them later
             //created a list of lists of agents to cycle and readd their origin here below
 
+            // create the supplier for enemy parties list
             jList = createPartySupplier(2000, Mission.Current.PlayerEnemyTeam.Side).ToList(); //calling this makes current members null
+            // stores the origins for all allies regardless of party - allied list
             AList = createPartySupplier(2000, Mission.Current.PlayerTeam.Side).ToList(); //calling this makes current members null
 
 
             
-
+            // assigns the origin obbject to the agents already on the battlefield (giving their souls back)
             for (int omega = 0; omega < RosterPartyList.Count(); omega++)
             {
                 List<Agent> currentListToRestore = RosterPartyList.ElementAt(omega);
@@ -840,6 +850,7 @@ namespace Reinforcements
             
         }
 
+        ///
         private List<IAgentOriginBase> getOGTroopsFromAORJList(TextObject party, List<IAgentOriginBase> jList)
         {
             List<IAgentOriginBase> newList = new List<IAgentOriginBase>();
@@ -866,6 +877,7 @@ namespace Reinforcements
             }
         }
 
+/// This function actually adds the characters to the battle based on what is passed in the queue list
         private async void spawnNewReinforcements(List<IAgentOriginBase> QueueList, bool playerSide, Team team)
         {
             int troopLimit;
@@ -886,6 +898,7 @@ namespace Reinforcements
                 {
                     await nightNight(1500);
                 }
+                // helps delay the spawn time 
                 if(i%3 == 0)
                 {
                     await nightNight(500);
@@ -906,6 +919,7 @@ namespace Reinforcements
                 }
 
             }
+            // these locks prevent multiple instances of spawn from running for either side
             if(playerSide == true)
             {
                 lockAllySpawnNewReinforcements = false;
@@ -1279,6 +1293,8 @@ namespace Reinforcements
             }
             return false;
         }
+
+        /// 
         private static List<IAgentOriginBase> createPartySupplier(int troops, BattleSideEnum side)
         {
             System.Diagnostics.Debug.WriteLine("inside createpartyuispplier");
@@ -1397,6 +1413,11 @@ namespace Reinforcements
 
         }
 
+        // START HERE - declare war
+        /**
+        Get the armies that are potential candidates for joining the battle; adds them to two distinct lists
+        
+        */
         public async void storeNearbyArmiesCS(PartyBase enemyParty)
         {
 
