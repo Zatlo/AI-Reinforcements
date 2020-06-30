@@ -38,7 +38,7 @@ namespace Reinforcements
         protected override void OnGameStart(Game game, IGameStarter IGS)
         {
             base.OnGameStart(game, IGS);
-            //InformationManager.DisplayMessage(new InformationMessage("Inside OnGameStart v2.0.0")); //initialize mod
+            //InformationManager.DisplayMessage(new InformationMessage("Inside OnGameStart v2.1.0")); //initialize mod
             CampaignGameStarter temp = IGS as CampaignGameStarter;
 
             bool flag = !(game.GameType is Campaign);
@@ -88,7 +88,7 @@ namespace Reinforcements
 
     }
 
-    public class CustomBattleEndLogic : MissionLogic
+    public class CustomBattleEndLogic : MissionLogic, IBattleEndLogic
     {
 
         // Token: 0x170005AD RID: 1453
@@ -120,21 +120,42 @@ namespace Reinforcements
         public override bool MissionEnded(ref MissionResult missionResult)
         {
             bool flag = false;
-            if (Mission.Current.PlayerEnemyTeam.ActiveAgents.Count() < 1)
+            if (Mission.Current.PlayerAllyTeam == null)
             {
-                missionResult = MissionResult.CreateSuccessful(base.Mission);
-                flag = true;
+                if (Mission.Current.PlayerEnemyTeam.ActiveAgents.Count() < 1)
+                {
+                    missionResult = MissionResult.CreateSuccessful(base.Mission);
+                    flag = true;
+                }
+                else if (Mission.Current.PlayerTeam.ActiveAgents.Count() < 1)
+                {
+                    missionResult = MissionResult.CreateDefeated(base.Mission);
+                    flag = true;
+                }
+                if (flag)
+                {
+                    this._missionAgentSpawnLogic.StopSpawner();
+                }
+                return flag;
             }
-            else if (Mission.Current.PlayerTeam.ActiveAgents.Count() < 1)
+            else
             {
-                missionResult = MissionResult.CreateDefeated(base.Mission);
-                flag = true;
+                if (Mission.Current.PlayerEnemyTeam.ActiveAgents.Count() < 1)
+                {
+                    missionResult = MissionResult.CreateSuccessful(base.Mission);
+                    flag = true;
+                }
+                else if (Mission.Current.PlayerTeam.ActiveAgents.Count() + Mission.Current.PlayerAllyTeam.ActiveAgents.Count() < 1)
+                {
+                    missionResult = MissionResult.CreateDefeated(base.Mission);
+                    flag = true;
+                }
+                if (flag)
+                {
+                    this._missionAgentSpawnLogic.StopSpawner();
+                }
+                return flag;
             }
-            if (flag)
-            {
-                //this._missionAgentSpawnLogic.StopSpawner();
-            }
-            return flag;
         }
 
         // Token: 0x06001C67 RID: 7271 RVA: 0x00061300 File Offset: 0x0005F500
@@ -172,6 +193,30 @@ namespace Reinforcements
                         }
                     }
                 }
+                else if (this._checkRetreatingTimer.ElapsedTime > 3f && !this._scoreBoardOpenedOnceOnMissionEnd)
+                {
+                    if (base.Mission.MissionResult != null && base.Mission.MissionResult.PlayerDefeated)
+                    {
+                        InformationManager.AddQuickInformation(GameTexts.FindText("str_battle_lost", null), 0, null, "");
+                    }
+                    else if (base.Mission.MissionResult != null && base.Mission.MissionResult.PlayerVictory)
+                    {
+                        if (this._isEnemySideDepleted)
+                        {
+                            InformationManager.AddQuickInformation(GameTexts.FindText("str_battle_won", null), 0, null, "");
+                        }
+                        else if (this._isEnemySideRetreating)
+                        {
+                            InformationManager.AddQuickInformation(GameTexts.FindText("str_enemies_are_fleeing_you_won", null), 0, null, "");
+                        }
+                    }
+                    else
+                    {
+                        InformationManager.AddQuickInformation(GameTexts.FindText("str_battle_finished", null), 0, null, "");
+                    }
+                    this._missionEndedMessageShown = true;
+                    this._checkRetreatingTimer.Reset();
+                }
 
                 if (!this._victoryReactionsActivated)
                 {
@@ -199,6 +244,11 @@ namespace Reinforcements
                         }
                     }
                 }
+            }
+            else if (this._checkRetreatingTimer.ElapsedTime > 1f)
+            {
+                this.CheckIsEnemySideRetreatingOrOneSideDepleted();
+                this._checkRetreatingTimer.Reset();
             }
 
         }
@@ -298,7 +348,7 @@ namespace Reinforcements
         {
             base.OnBehaviourInitialize();
             this._checkRetreatingTimer = new BasicTimer(MBCommon.TimeType.Mission);
-            //this._missionAgentSpawnLogic = base.Mission.GetMissionBehaviour<IMissionAgentSpawnLogic>();
+            this._missionAgentSpawnLogic = base.Mission.GetMissionBehaviour<IMissionAgentSpawnLogic>();
         }
 
         // Token: 0x06001C6C RID: 7276 RVA: 0x00061810 File Offset: 0x0005FA10
@@ -334,6 +384,7 @@ namespace Reinforcements
         }
 
         // Token: 0x04000A5C RID: 2652
+        private IMissionAgentSpawnLogic _missionAgentSpawnLogic;
 
         // Token: 0x04000A5D RID: 2653
         private MissionTime _enemiesNotYetRetreatingTime;
@@ -379,25 +430,7 @@ namespace Reinforcements
             True
         }
 
-        /*public override void OnMissionTick(float dt)
-        {
-            base.OnMissionTick(dt);
-            GameTexts.SetVariable("leave_key", Game.Current.GameTextManager.GetHotKeyGameText("CombatHotKeyCategory", 4));
-            InformationManager.AddQuickInformation(GameTexts.FindText("str_battle_lost_press_tab_to_view_results", null), 0, null, "");
-        }
-        public void checkIfEnd()
-        {
-            if (Mission.Current.PlayerTeam.ActiveAgents.Count() < 1)
-            {
-                GameTexts.SetVariable("leave_key", Game.Current.GameTextManager.GetHotKeyGameText("CombatHotKeyCategory", 4));
-                InformationManager.AddQuickInformation(GameTexts.FindText("str_battle_lost_press_tab_to_view_results", null), 0, null, "");
-                MissionResult.CreateDefeated(Mission.Current);
-                MissionLogic logicB = Mission.Current.MissionLogics.ElementAt(5);
-                BattleEndLogic logicA = logicB as BattleEndLogic;
-                logicA.TryExit();
-                
-            }
-        }*/
+        
     }
 
 
@@ -445,25 +478,25 @@ namespace Reinforcements
         [SettingPropertyGroup("Main Settings/Options/Reinforcements")]
         public bool SettingAllowMinorParties { get; set; } = false;
 
-        [SettingPropertyBool("Allow Siege Reinforcements", Order = 2, RequireRestart = false, HintText = "Minor parties such as looters and bandits")]
+        /*[SettingPropertyBool("Allow Siege Reinforcements", Order = 2, RequireRestart = false, HintText = "Minor parties such as looters and bandits")]
         [SettingPropertyGroup("Main Settings/Options/Reinforcements")]
+        public bool SettingAllowSeigeReinforcements { get; set; } = false;*/
 
-        public bool SettingAllowSeigeReinforcements { get; set; } = false;
-        [SettingPropertyBool("Allow Player Caravan Reinforcements", Order = 3, RequireRestart = false, HintText = "Setting explanation.")]
+        [SettingPropertyBool("Allow Player Caravan Reinforcements", Order = 3, RequireRestart = false, HintText = "Allows player allies to help the player")]
         [SettingPropertyGroup("Main Settings/Options/Reinforcements")]
         public bool SettingPlayerCaravanReinforcements { get; set; } = false;
 
 
-        [SettingPropertyBool("Allow Enemy Caravan Reinforcements", Order = 4, RequireRestart = false, HintText = "Setting explanation.")]
+        [SettingPropertyBool("Allow Enemy Caravan Reinforcements", Order = 4, RequireRestart = false, HintText = "Allows caravan allies to assist them")]
         [SettingPropertyGroup("Main Settings/Options/Reinforcements")]
         public bool SettingEnemyCaravanReinforcements { get; set; } = true;
 
 
-        [SettingPropertyFloatingInteger("Setting PlayerJoinRatio", 0f, 2f, "#0%", Order = 2, RequireRestart = false, HintText = "Setting explanation.")]
+        [SettingPropertyFloatingInteger("Setting PlayerJoinRatio", 0f, 2f, "#0%", Order = 2, RequireRestart = false, HintText = "0 = always join, 100 = same amount of soldiers to enemy, 200 = twice")]
         [SettingPropertyGroup("Main Settings/Options/Ratios")]
         public float SettingPlayerJoinRatio { get; set; } = 0.80f;
 
-        [SettingPropertyFloatingInteger("Setting EnemyJoinRatio", 0f, 2f, "#0%", Order = 2, RequireRestart = false, HintText = "Setting explanation.")]
+        [SettingPropertyFloatingInteger("Setting EnemyJoinRatio", 0f, 2f, "#0%", Order = 2, RequireRestart = false, HintText = "0 = always join, 100 = same amount of soldiers to player, 200 = twice")]
         [SettingPropertyGroup("Main Settings/Options/Ratios")]
         public float SettingEnemyJoinRatio { get; set; } = 1.10f;
 
@@ -471,7 +504,7 @@ namespace Reinforcements
 
 
         // Value is displayed as a percentage
-        [SettingPropertyFloatingInteger("Speed parties join from distance", 0f, 4f, "#0%", Order = 2, RequireRestart = false, HintText = "0 = imediatly, 2 = normal, 4 = double the time")]
+        [SettingPropertyFloatingInteger("Speed parties join from distance", 0f, 4f, "#0%", Order = 2, RequireRestart = false, HintText = "0 = imediatly join, 2 = normal, 4 = double the time to join")]
         [SettingPropertyGroup("Main Settings/Options/Ratios")]
         public float SettingTimeToSpawnRatio { get; set; } = 2.0f;
 
@@ -496,6 +529,10 @@ namespace Reinforcements
         static List<IAgentOriginBase> AlliesInQueue = new List<IAgentOriginBase>();
         static bool lockEnemySpawnNewReinforcements = false;
         static bool lockAllySpawnNewReinforcements = false;
+        static bool lockSpawnOGAllyReinforcements = false;
+        static bool lockSpawnOGEnemyReinforcements = false;
+
+
         static bool calculateNextPartyLock = false;
 
 
@@ -505,6 +542,9 @@ namespace Reinforcements
         static int InitialEnemyTroopCount = new int();
         static int InitialAllyTroopCount = new int();
         static bool stopRepeat = false;
+
+        static int numActiveAllyTroops = 0;
+        static int numActiveEnemyTroos = 0;
 
         //caravans
         static MobileParty EnemyPartyMainMobileParty;
@@ -600,7 +640,7 @@ namespace Reinforcements
                 /*if (modActive == false)
                     return;*/
 
-                if (Mission.Current.IsFieldBattle)
+                /*if (Mission.Current.IsFieldBattle)
                 {
                     //MapEvent.PlayerMapEvent.DefenderSide.RecalculateMemberCountOfSide();
 
@@ -608,20 +648,39 @@ namespace Reinforcements
                     {
                         //MapEvent.PlayerMapEvent.CheckIfOneSideHasLost();
                         stopRepeat = true;
-                        CustomBattleEndLogic temp = new CustomBattleEndLogic();
+                        //CustomBattleEndLogic temp = new CustomBattleEndLogic();
                         //temp.checkIfEnd();
                     }
-                }
+                }*/
+                if (Mission.Current.Time < 10.0f)
+                    return;
 
                 try
                 {
-                    if (Mission.Current.Time > 10.0f && Mission.Current.PlayerTeam.ActiveAgents.Count() > 1 && Mission.Current.IsFieldBattle)
+                    if (Mission.Current.Time > 10.0f && ActiveTroops(Mission.Current.PlayerTeam) > 1  && Mission.Current.IsFieldBattle)
                     {
                         // respawns units based on if the count is < 10 of original & current logic maintains the original troop proportions
-                        if (InitialAllyTroopCount - 9 > Mission.Current.PlayerTeam.ActiveAgents.Count() && !OriginalAllyReinforcements.IsEmpty())
-                            spawnOriginalReinforcements(OriginalAllyReinforcements, true);
-                        if (InitialEnemyTroopCount - 9 > Mission.Current.PlayerEnemyTeam.ActiveAgents.Count() && !OriginalEnemyReinforcements.IsEmpty())
+                        if (Mission.Current.PlayerAllyTeam == null)
+                        {
+                            if (InitialAllyTroopCount - 8 > Mission.Current.PlayerTeam.ActiveAgents.Count() && !OriginalAllyReinforcements.IsEmpty() && !lockSpawnOGAllyReinforcements)
+                            {
+                                lockSpawnOGAllyReinforcements = true;
+                                spawnOriginalReinforcements(OriginalAllyReinforcements, true);
+                            }
+                        }
+                        else
+                        {
+                            if (InitialAllyTroopCount - 8 > Mission.Current.PlayerTeam.ActiveAgents.Count() + Mission.Current.PlayerAllyTeam.ActiveAgents.Count() && !OriginalAllyReinforcements.IsEmpty() && !lockSpawnOGAllyReinforcements)
+                            {
+                                lockSpawnOGAllyReinforcements = true;
+                                spawnOriginalReinforcements(OriginalAllyReinforcements, true);
+                            }
+                        }
+                        if (InitialEnemyTroopCount - 8 > Mission.Current.PlayerEnemyTeam.ActiveAgents.Count() && !OriginalEnemyReinforcements.IsEmpty() && !lockSpawnOGEnemyReinforcements)
+                        {
+                            lockSpawnOGEnemyReinforcements = true;
                             spawnOriginalReinforcements(OriginalEnemyReinforcements, false);
+                        }
                     }
                 }
                 catch (Exception e)
@@ -631,15 +690,26 @@ namespace Reinforcements
                     return;
                 }
 
-                if (!EnemiesInQueue.IsEmpty() && lockEnemySpawnNewReinforcements == false)
+                try
                 {
-                    lockEnemySpawnNewReinforcements = true;
-                    spawnNewReinforcements(EnemiesInQueue, false, Mission.Current.PlayerEnemyTeam);
+                    if (!EnemiesInQueue.IsEmpty() && lockEnemySpawnNewReinforcements == false && OriginalEnemyReinforcements.IsEmpty())
+                    {
+                        lockEnemySpawnNewReinforcements = true;
+                        spawnNewReinforcements(EnemiesInQueue, false, Mission.Current.PlayerEnemyTeam);
+                    }
+
+
+                    if (!AlliesInQueue.IsEmpty() && lockAllySpawnNewReinforcements == false && OriginalAllyReinforcements.IsEmpty())
+                    {
+                        lockAllySpawnNewReinforcements = true;
+                        spawnNewReinforcements(AlliesInQueue, true, Mission.Current.PlayerTeam);
+                    }
                 }
-                if (!AlliesInQueue.IsEmpty() && lockAllySpawnNewReinforcements == false)
+                catch(Exception e)
                 {
-                    lockAllySpawnNewReinforcements = true;
-                    spawnNewReinforcements(AlliesInQueue, true, Mission.Current.PlayerTeam);
+                    System.Diagnostics.Debug.WriteLine("Caught exception at MissionTick of spawn new Reinforcements");
+                    resetMod();
+                    return;
                 }
                 /*if(Mission.Current.Time >= 10.0f && testing == false)
                 {
@@ -743,9 +813,8 @@ namespace Reinforcements
         public Task storeNearbyArmiesCS(PartyBase enemyParty)
         {
 
-            EnemyPartyMainMobileParty = enemyParty.MobileParty; //hnaldes cases in the future
 
-            if (!enemyParty.MobileParty.IsLordParty && !enemyParty.MobileParty.IsCaravan) //exempts looters and other minor factions that aren't lord parties
+            if (!enemyParty.MobileParty.IsLordParty && !enemyParty.MobileParty.IsCaravan && !enemyParty.MobileParty.IsBandit) //exempts looters and other minor factions that aren't lord parties
             {
                 System.Diagnostics.Debug.WriteLine("Not lord party exiting storenearbyArmies");
                 return Task.CompletedTask;
@@ -756,9 +825,16 @@ namespace Reinforcements
                 return Task.CompletedTask;
             }
 
-                
+            if (enemyParty.MobileParty.IsBandit && MCMUISettings.Instance.SettingAllowMinorParties == false)
+            { //deals with allow minor faction reinforcements
+                System.Diagnostics.Debug.WriteLine("Minor party but player disabled minor reinforcments");
+                return Task.CompletedTask;
+            }
+
 
             resetMod();
+            EnemyPartyMainMobileParty = enemyParty.MobileParty; //hnaldes cases in the future
+
             lordParty = true;
             System.Diagnostics.Debug.WriteLine("Storing neraby Armies");
 
@@ -784,9 +860,9 @@ namespace Reinforcements
                 MobileParty temp = nearyParties.ElementAt(i);
                 if ((temp.MapFaction == enemyParty.MapFaction) && IsWithinInvoledParties(currentInvolvedParties, temp) == false)
                 {
-                    if (temp.IsLordParty && temp.MapEvent == null)
+                    if ((temp.IsLordParty || temp.IsBandit) && temp.MapEvent == null)
                     {
-                        System.Diagnostics.Debug.WriteLine(temp.Name.ToString() + " " + temp.GetTrackDistanceToMainAgent());
+                        System.Diagnostics.Debug.WriteLine("Enemy " + temp.Name.ToString() + " " + temp.GetTrackDistanceToMainAgent() + " " + temp.Party.NumberOfHealthyMembers);
 
                         EnemyNearbyParties.Add(temp);
                     }
@@ -796,7 +872,7 @@ namespace Reinforcements
                 {
                     if (temp.IsLordParty && temp.MapEvent == null)
                     {
-                        System.Diagnostics.Debug.WriteLine(temp.Name.ToString() + " " + temp.GetTrackDistanceToMainAgent());
+                        System.Diagnostics.Debug.WriteLine("Ally " + temp.Name.ToString() + " " + temp.GetTrackDistanceToMainAgent() + " " + temp.Party.NumberOfHealthyMembers);
                         AllyNearbyParties.Add(temp);
                     }
                 }
@@ -852,8 +928,13 @@ namespace Reinforcements
             else
                 BigSpawnTimer = getDelaySpawnTime(AllydistancePartyList.ElementAt(0));
 
-            CustomBattleEndLogic newBattleLogic = new CustomBattleEndLogic();
+
+            CustomBattleEndLogic newBattleLogic = new CustomBattleEndLogic();            
             Mission.Current.AddMissionBehaviour(newBattleLogic); //add our own custom battle end logic
+            newBattleLogic.OnBehaviourInitialize();
+
+
+
             Mission.Current.RemoveMissionBehaviour(Mission.Current.GetMissionBehaviour<BattleEndLogic>()); //removes Original battleEndlogic
             //Mission.Current.Mission
             System.Diagnostics.Debug.WriteLine("Finished calculating first time with time " + BigSpawnTimer);
@@ -877,6 +958,8 @@ namespace Reinforcements
 
         private async Task populateTroopList()
         {
+            System.Diagnostics.Debug.WriteLine("Populating Troop List");
+
 
             while (Mission.Current.PlayerTeam.ActiveAgents == null || Mission.Current.PlayerTeam.ActiveAgents.Count() <= 0)
             {
@@ -895,16 +978,18 @@ namespace Reinforcements
             //list of OG troops and their party
             List<List<Agent>> RosterPartyList = new List<List<Agent>>(); //lists of lists of agents OG spawned agents
             List<MobileParty> RosterNamePartyList = new List<MobileParty>();
+            System.Diagnostics.Debug.WriteLine("after OG pop troop list");
             for (int k = 0; k < OriginalInvolvedParties.Count(); k++)
             {
                 //List<IAgentOriginBase> OGInvolvedTempTeamRoster = newAgentsOfParty(OriginalInvolvedParties.ElementAt(k), jList); //returns a list of Jlist with OG list only
 
-                Team CurrentTeam = Mission.Current.PlayerEnemyTeam;
-                if (OriginalInvolvedParties.ElementAt(k).MapFaction == MobileParty.MainParty.MapFaction)
-                    CurrentTeam = Mission.Current.PlayerTeam;
+                Team CurrentTeam = Mission.Current.AttackerTeam;
+                
+                if (!OriginalInvolvedParties.ElementAt(k).MapEvent.AttackerSide.PartiesOnThisSide.Contains(OriginalInvolvedParties.ElementAt(k)))
+                    CurrentTeam = Mission.Current.DefenderTeam;
                 //get Original parties
 
-                System.Diagnostics.Debug.WriteLine("Populating Troop List");
+                
 
 
                 List<Agent> saveLives = new List<Agent>();
@@ -914,6 +999,24 @@ namespace Reinforcements
 
                     if (tempAgent.Party == OriginalInvolvedParties.ElementAt(k).MobileParty.Party)
                         saveLives.Add(CurrentTeam.ActiveAgents.ElementAt(y));
+                }
+                if (saveLives.IsEmpty()) //look in the defenderally or attackerally team
+                {
+                    if (CurrentTeam == Mission.Current.AttackerTeam)
+                    {
+                        CurrentTeam = Mission.Current.AttackerAllyTeam;
+                    }
+                    else
+                    {
+                        CurrentTeam = Mission.Current.DefenderAllyTeam;
+                    }
+                    for (int y = 0; y < CurrentTeam.ActiveAgents.Count(); y++)
+                    {
+                        PartyGroupAgentOrigin tempAgent = CurrentTeam.ActiveAgents.ElementAt(y).Origin as PartyGroupAgentOrigin;
+
+                        if (tempAgent.Party == OriginalInvolvedParties.ElementAt(k).MobileParty.Party)
+                            saveLives.Add(CurrentTeam.ActiveAgents.ElementAt(y));
+                    }
                 }
                 RosterPartyList.Add(saveLives);
                 RosterNamePartyList.Add(OriginalInvolvedParties.ElementAt(k).MobileParty);
@@ -925,9 +1028,9 @@ namespace Reinforcements
             //created a list of lists of agents to cycle and readd their origin here below
 
             // create the supplier for enemy parties list
-            jList = createPartySupplier(2000, Mission.Current.PlayerEnemyTeam.Side).ToList(); //calling this makes current members null
+            jList = createPartySupplier(5000, Mission.Current.PlayerEnemyTeam.Side).ToList(); //calling this makes current members null
             // stores the origins for all allies regardless of party - allied list
-            AList = createPartySupplier(2000, Mission.Current.PlayerTeam.Side).ToList(); //calling this makes current members null
+            AList = createPartySupplier(5000, Mission.Current.PlayerTeam.Side).ToList(); //calling this makes current members null
 
 
 
@@ -937,31 +1040,42 @@ namespace Reinforcements
                 List<Agent> currentListToRestore = RosterPartyList.ElementAt(omega);
                 //use this list below for quicker
                 List<IAgentOriginBase> ListSide = jList;
-                if (RosterNamePartyList.ElementAt(omega).MapFaction == MobileParty.MainParty.MapFaction) //if ally
-                {
-                    ListSide = AList;
+                //if (RosterNamePartyList.ElementAt(omega).MapFaction == MobileParty.MainParty.MapFaction) //if ally
+                if(Mission.Current.PlayerTeam == Mission.Current.AttackerTeam) { 
+                    if(RosterNamePartyList.ElementAt(omega).Party.MapEvent.AttackerSide.PartiesOnThisSide.Contains(RosterNamePartyList.ElementAt(omega).Party))
+                    {
+                        ListSide = AList;
+                    }
                 }
-
+                else if(Mission.Current.PlayerTeam == Mission.Current.DefenderTeam)
+                {
+                    if (RosterNamePartyList.ElementAt(omega).Party.MapEvent.DefenderSide.PartiesOnThisSide.Contains(RosterNamePartyList.ElementAt(omega).Party))
+                    {
+                        ListSide = AList;
+                    }
+                }
 
                 List<IAgentOriginBase> restoreOGParties = getOGTroopsFromAORJList(RosterNamePartyList.ElementAt(omega).Name, ListSide); // a list of first party to restrore
                 for (int R = 0; R < restoreOGParties.Count(); R++)
                 {
                     PartyGroupAgentOrigin tempOriginInAJlist = restoreOGParties.ElementAt(R) as PartyGroupAgentOrigin;
 
-
-                    Agent item = currentListToRestore.FirstOrDefault(o => o.Character.Name == tempOriginInAJlist.Troop.Name);
-                    try
+                    if (tempOriginInAJlist.Party == RosterNamePartyList.ElementAt(omega).Party) //new check to see if the from the same party remove later if craash v2.1
                     {
-                        item.Origin = restoreOGParties.ElementAt(R);
-                        currentListToRestore.Remove(item);
+                        Agent item = currentListToRestore.FirstOrDefault(o => o.Character.Name == tempOriginInAJlist.Troop.Name);
+                        try
+                        {
+                            item.Origin = restoreOGParties.ElementAt(R);
+                            ListSide.Remove(item.Origin); //fix??? remove later if you crash v2.1
+                            currentListToRestore.Remove(item);
+                        }
+                        catch (Exception e)
+                        {
+                            //System.Diagnostics.Debug.WriteLine(e);
+                            //System.Diagnostics.Debug.WriteLine("R + " + R);
+                            //System.Diagnostics.Debug.WriteLine(item.Name);
+                        }
                     }
-                    catch (Exception e)
-                    {
-                        //System.Diagnostics.Debug.WriteLine(e);
-                        System.Diagnostics.Debug.WriteLine("R + " + R);
-                        //System.Diagnostics.Debug.WriteLine(item.Name);
-                    }
-
                 }
             }
 
@@ -971,8 +1085,26 @@ namespace Reinforcements
             getOriginalReinforcementsFirst(EnemyactiveAgents, jList, false); //enemy second
 
 
-            InitialAllyTroopCount = Mission.Current.PlayerTeam.ActiveAgents.Count();
-            InitialEnemyTroopCount = Mission.Current.PlayerEnemyTeam.ActiveAgents.Count();
+            if(Mission.Current.PlayerTeam == Mission.Current.AttackerTeam)
+            {
+                InitialAllyTroopCount = Mission.Current.AttackerTeam.ActiveAgents.Count();
+                if (Mission.Current.AttackerAllyTeam != null)
+                    InitialAllyTroopCount += Mission.Current.AttackerAllyTeam.ActiveAgents.Count();
+                InitialEnemyTroopCount = Mission.Current.DefenderTeam.ActiveAgents.Count();
+                if (Mission.Current.DefenderAllyTeam != null)
+                    InitialEnemyTroopCount += Mission.Current.DefenderAllyTeam.ActiveAgents.Count();
+            }
+            else
+            {
+                InitialAllyTroopCount = Mission.Current.DefenderTeam.ActiveAgents.Count();
+                if (Mission.Current.DefenderAllyTeam != null)
+                    InitialAllyTroopCount += Mission.Current.DefenderAllyTeam.ActiveAgents.Count();
+                InitialEnemyTroopCount = Mission.Current.AttackerTeam.ActiveAgents.Count();
+                if (Mission.Current.AttackerAllyTeam != null)
+                    InitialEnemyTroopCount += Mission.Current.AttackerAllyTeam.ActiveAgents.Count();
+            }
+            //InitialAllyTroopCount = Mission.Current.PlayerTeam.ActiveAgents.Count();
+            //InitialEnemyTroopCount = Mission.Current.PlayerEnemyTeam.ActiveAgents.Count();
             removeAllParties();
 
             System.Diagnostics.Debug.WriteLine("Finished Populating Troop List");
@@ -1074,6 +1206,8 @@ namespace Reinforcements
             //check if current AJList unit is within involved parties
             System.Diagnostics.Debug.WriteLine("Getting Original Reinforcements"); //
 
+
+
             List<IAgentOriginBase> ALLOGAgents = new List<IAgentOriginBase>();
 
 
@@ -1111,6 +1245,9 @@ namespace Reinforcements
 
         private async void calculateNextParty()
         {
+
+            System.Diagnostics.Debug.WriteLine("Calculatre next party");
+
             try
             {
                 if (Mission.Current.MissionEnded())
@@ -1147,14 +1284,31 @@ namespace Reinforcements
                 int BreakCount = 0;
                 StopRepeating = 0;
                 //enemy
+
+                try
+                {
+                    if (Mission.Current.MissionEnded())
+                    {
+                        return;
+                    }
+                }
+                catch (Exception e)
+                {
+                    System.Diagnostics.Debug.WriteLine("Caught exception at calculateNextParty inside whileloop");
+                    resetMod();
+                    return;
+                }
+
+
                 if (currentLocalCycle < EnemyNearbyParties.Count() && Mission.Current.Time >= getDelaySpawnTime(EnemydistancePartyList.ElementAt(currentLocalCycle)))
                 {
 
                     if (enoughMen(currentLocalCycle, EnemyNearbyParties, Mission.Current.PlayerEnemyTeam))
                     {
                         System.Diagnostics.Debug.WriteLine("spawning enemy " + EnemyNearbyParties.ElementAt(0).Name.ToString()); // not current but element 0
-                        await Task.Delay(3009);
                         await CalculatingMisc(EnemyNearbyParties, Mission.Current.PlayerEnemyTeam, EnemydistancePartyList);
+                        if (BigSpawnTimer == 0)
+                            break;
                     }
                     else
                     {
@@ -1175,8 +1329,9 @@ namespace Reinforcements
                     if (enoughMen(currentLocalCycle, AllyNearbyParties, Mission.Current.PlayerTeam))
                     {
                         System.Diagnostics.Debug.WriteLine("spawning ally " + AllyNearbyParties.ElementAt(0).Name.ToString());
-                        await Task.Delay(3009);
                         await CalculatingMisc(AllyNearbyParties, Mission.Current.PlayerTeam, AllydistancePartyList);
+                        if (BigSpawnTimer == 0)//accounts for spaswn immediatly
+                            break;
                     }
                     else
                     {
@@ -1192,10 +1347,13 @@ namespace Reinforcements
 
 
 
-                if (BreakCount == 2) //if both list can't spawn then just break
+                if (currentLocalCycle > AllyNearbyParties.Count() && currentLocalCycle > EnemyNearbyParties.Count())
+                { //if both list can't spawn then just break
+                    BigSpawnTimer += 30;
                     break;
+                }
                 currentLocalCycle++;
-
+                await Task.Delay(2009);
 
             }
 
@@ -1211,6 +1369,20 @@ namespace Reinforcements
 
         private static bool enoughMen(int currentPartyInList, List<MobileParty> whichSide, Team thisteam) //if the current reinforcements arent enough to help the army then
         {
+            try
+            {
+                if (Mission.Current.MissionEnded())
+                {
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine("Caught exception at enoughMen");
+                resetMod();
+                return false;
+            }
+
             Team OppositeTeam;
             int inQueue = 0;
             if (thisteam == Mission.Current.PlayerTeam)
@@ -1234,13 +1406,13 @@ namespace Reinforcements
             }
 
 
-            int currentActiveAgents = thisteam.ActiveAgents.Count();
+            int currentActiveAgents = ActiveTroops(thisteam);
             int totalNewMen = 0;
             for (int i = 0; i <= currentPartyInList; i++)
             {
                 totalNewMen += whichSide.ElementAt(i).Party.NumberOfHealthyMembers;
             }
-            if (OppositeTeam.ActiveAgents.Count() * ratio < currentActiveAgents + totalNewMen + inQueue)
+            if (ActiveTroops(OppositeTeam) * ratio < currentActiveAgents + totalNewMen + inQueue)
             {
                 System.Diagnostics.Debug.WriteLine("enoguh men is true " + (currentActiveAgents + totalNewMen + inQueue));
                 return true;
@@ -1265,7 +1437,7 @@ namespace Reinforcements
                 resetMod();
                 return;
             }
-            standYourGround(team.Side);
+            await standYourGround(team.Side);
             System.Diagnostics.Debug.WriteLine("Calcualting misk for " + list.ElementAt(0).Name.ToString());
             modActive = true;
             changeAmountMenAllowed();
@@ -1279,6 +1451,7 @@ namespace Reinforcements
             fixTime();
             //add involved
             //teleport party
+            return;
         }
 
         private void changeAmountMenAllowed()
@@ -1292,6 +1465,19 @@ namespace Reinforcements
 
         private static void moveEnemyPartiesRegardless(int partyInList, Vec2 partylocation, List<MobileParty> list) //moves a party to the player map
         {
+            try
+            {
+                if (Mission.Current.MissionEnded())
+                {
+                    return;
+                }
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine("Caught exception at movePartty");
+                resetMod();
+                return;
+            }
 
             System.Diagnostics.Debug.WriteLine("Added involved party and moved them " + list.ElementAt(partyInList).Name.ToString());
             MobileParty curretParty = list.ElementAt(partyInList); //moves the whole army
@@ -1322,26 +1508,28 @@ namespace Reinforcements
             else
                 list.ElementAt(partyInList).Party.MobileParty.Position2D = partylocation;
 
-            
+
+            System.Diagnostics.Debug.WriteLine("Exit move party ");
 
         }
 
         private Task spawnTroopsBeta(MobileParty currentParty, Team team)
         {
-            InformationManager.AddQuickInformation(new TextObject(currentParty.Name.ToString() + " has joined the battle!"));
+            System.Diagnostics.Debug.WriteLine("SpawnTroopBeta ");
+
+
+            if (team == Mission.Current.PlayerEnemyTeam)
+                InformationManager.AddQuickInformation(new TextObject("Enemy " + currentParty.Name.ToString() + " has joined the battle!"));
+            else
+                InformationManager.AddQuickInformation(new TextObject("Ally " + currentParty.Name.ToString() + " has joined the battle!"));
+
+
             Mission.Current.MakeSound(SoundEvent.GetEventIdFromString("event:/ui/mission/horns/attack"), Mission.Current.PlayerEnemyTeam.ActiveAgents.GetRandomElement().Position, true, true, 0, 0);
             List<IAgentOriginBase> currentPartyRoster = new List<IAgentOriginBase>();
 
-            if (team == Mission.Current.PlayerTeam)
-            {
-                currentPartyRoster = newAgentsOfParty(currentParty.Party, AList); // ally list
-                for (int i = 0; i < currentPartyRoster.Count(); i++)
-                {
-                    AlliesInQueue.Add(currentPartyRoster.ElementAt(i));
-                }
-            }
 
-            else
+
+            if (team == Mission.Current.PlayerEnemyTeam)
             {
                 currentPartyRoster = newAgentsOfParty(currentParty.Party, jList); // enemy add
                 for (int i = 0; i < currentPartyRoster.Count(); i++)
@@ -1350,65 +1538,25 @@ namespace Reinforcements
                 }
             }
 
-
-            for (int i = 0; i < currentInvolvedParties.Count(); i++) //feature I need to add later
+            else
             {
-
-                partiesInFight.Add(currentInvolvedParties.ElementAt(i).Name);
+                
+                currentPartyRoster = newAgentsOfParty(currentParty.Party, AList); // ally list
+                for (int i = 0; i < currentPartyRoster.Count(); i++)
+                {
+                    AlliesInQueue.Add(currentPartyRoster.ElementAt(i));
+                }
             }
 
 
-            //MBReadOnlyList<Agent> hello2 = Mission.Current.PlayerEnemyTeam.ActiveAgents;
-
-            /*for (int i = 0; i < currentPartyRoster.Count(); i++) //gets all nearby parties
+            /*for (int i = 0; i < currentInvolvedParties.Count(); i++) //feature I need to add later
             {
-                while(troopLimit-2 < team.ActiveAgents.Count())
-                {
-                    await nightNight(1500);
-                }
-                if (gameFinished == true)
-                    return;
-                
-                //partiesInFight.Add(trueNearbyPartties.ElementAt(i).Party.Name);
-                try
-                {
 
-                        *//*PartyGroupAgentOrigin partyGroupAgentOrigin =
-                                (PartyGroupAgentOrigin)typeof(PartyGroupAgentOrigin).GetConstructor(BindingFlags.NonPublic |
-                                BindingFlags.Instance, null, new Type[] { typeof(PartyGroupTroopSupplier), typeof(UniqueTroopDescriptor),
-                                    typeof(int) }, null).Invoke(new object[] { listPGTS.ElementAt(i), new UniqueTroopDescriptor(27492338), j });*//*
-                        //IAgentOriginBase timKimspawn = createPartySupplier().ElementAt(i);
-                        //timKimKim = listPGTS.ElementAt(i).SupplyTroops(30);
-                        int timho = 1;
-                        Agent GTSFAgent = Mission.Current.SpawnTroop(currentPartyRoster.ElementAt(i), playerSide, true,
-                        true, true, false, 0, 1, true, true, true);
-                        //Agent currentAgent = Mission.Current.SpawnAgent(new AgentBuildData(jList.ElementAt(j)));
-                        //currentAgent.SetTeam(Mission.Current.PlayerEnemyTeam, true);
-                        //MapEvent.PlayerMapEvent.DefenderSide.RecalculateMemberCountOfSide();
-
-                        *//*Agent currentAgent = Mission.Current.SpawnTroop(createPartySupplier().ElementAt(i), playerSide, true,
-                        false, true, false, 0, 1, true, true, true);*//*
-                        System.Diagnostics.Debug.WriteLine("It worked! " + i);
-
-                }
-                catch (Exception e)
-                {
-                    System.Diagnostics.Debug.WriteLine("Caught exception failed at " + i);
-                    System.Diagnostics.Debug.WriteLine(e);
-
-                }
-
-
-
-                if (i == 0)
-                {
-                }
-                MBReadOnlyList<Agent> hello = Mission.Current.PlayerEnemyTeam.ActiveAgents;
-
-                System.Diagnostics.Debug.WriteLine("finished spawning " + i + " Agent");
-
-
+                partiesInFight.Add(currentInvolvedParties.ElementAt(i).Name);
             }*/
+
+
+            
 
             System.Diagnostics.Debug.WriteLine("Closing Spawning Troops");
             return Task.CompletedTask;
@@ -1424,6 +1572,7 @@ namespace Reinforcements
                 if (tempVar.Party == party)
                 {
                     newList.Add(list.ElementAt(i));
+                    //list.Remove(list.ElementAt(i)); //removes from ALIST or JLIT
                 }
             }
             return newList;
@@ -1491,29 +1640,71 @@ namespace Reinforcements
                     count++;
                 }
             }
-            if (count >= 2)
+            if (count >= 1)
                 return true;
             return false;
         }
 
         private void spawnOriginalReinforcements(List<IAgentOriginBase> OGReinforcementList, bool playerSide)
         {
+            System.Diagnostics.Debug.WriteLine("spawning OG Reinforcements and is player " + playerSide);
+
             int size = OGReinforcementList.Count();
             if (size >= 10)
                 size = 10;
             for (int i = 0; i < size; i++)
             {
-                IAgentOriginBase rand = OGReinforcementList.GetRandomElement();
+                
 
-                Agent GTSFAgent = Mission.Current.SpawnTroop(rand, playerSide, true,
-                            rand.Troop.HasMount(), true, false, rand.Troop.DefaultFormationGroup, 1, true, true);
-                OGReinforcementList.Remove(rand);
+                try
+                {
+                    IAgentOriginBase rand = OGReinforcementList.GetRandomElement();
+
+                    Agent GTSFAgent = Mission.Current.SpawnTroop(rand, playerSide, true,
+                                rand.Troop.HasMount(), true, false, rand.Troop.DefaultFormationGroup, 1, true, true);
+                    OGReinforcementList.Remove(rand);
+                }
+                catch (Exception e)
+                {
+                    System.Diagnostics.Debug.WriteLine("Caught exception within spawn OG reinforcements");
+                    resetMod();
+                    return;
+                }
             }
+            if (playerSide)
+            {
+                lockSpawnOGAllyReinforcements = false;
+
+            }
+            else
+            {
+                lockSpawnOGEnemyReinforcements = false;
+
+            }
+            System.Diagnostics.Debug.WriteLine("Ending OG Reinforcements and is player " + playerSide);
+
+
         }
 
         /// This function actually adds the characters to the battle based on what is passed in the queue list
         private async void spawnNewReinforcements(List<IAgentOriginBase> QueueList, bool playerSide, Team team)
         {
+            try
+            {
+                if (Mission.Current.MissionEnded())
+                {
+                    return;
+                }
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine("Caught exception at spawn new reinforcements");
+                resetMod();
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine("spawning New Reinforcements");
+
             int troopLimit;
             if (!playerSide)
             {
@@ -1528,14 +1719,18 @@ namespace Reinforcements
 
             for (int i = 0; i < QueueList.Count(); i++)
             {
-                while (troopLimit - 2 < team.ActiveAgents.Count())
+                
+
+                while (troopLimit - 2 < ActiveTroops(team))
                 {
                     await nightNight(1500);
+                    
                 }
                 // helps delay the spawn time 
                 if (i % 3 == 0)
                 {
                     await nightNight(400);
+                    
                 }
 
                 try
@@ -1564,6 +1759,38 @@ namespace Reinforcements
             {
                 lockEnemySpawnNewReinforcements = false;
             }
+
+            System.Diagnostics.Debug.WriteLine("End spawning New Reinforcements");
+
+        }
+
+        private static int ActiveTroops(Team team)
+        {
+            try
+            {
+                if (Mission.Current.MissionEnded())
+                {
+                    return 0;
+                }
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine("Caught exception at ActiveEnemies");
+                resetMod();
+                return 0;
+            }
+
+            int activeTroops = Mission.Current.PlayerEnemyTeam.ActiveAgents.Count();
+            if (Mission.Current.PlayerAllyTeam == null && team == Mission.Current.PlayerTeam)
+            {
+                activeTroops = Mission.Current.PlayerTeam.ActiveAgents.Count();
+            }
+            else if (team == Mission.Current.PlayerTeam)
+            {
+                activeTroops = Mission.Current.PlayerTeam.ActiveAgents.Count() + Mission.Current.PlayerAllyTeam.ActiveAgents.Count();
+            }
+
+            return activeTroops;
         }
 
         private static async Task<int> nightNight(int time)//time
@@ -1704,7 +1931,7 @@ namespace Reinforcements
         
         */
 
-        private static void standYourGround(BattleSideEnum side)
+        private static Task standYourGround(BattleSideEnum side)
         {
             System.Diagnostics.Debug.WriteLine("Stand your ground");
             if (Mission.Current.PlayerTeam.Side == side)
@@ -1735,6 +1962,7 @@ namespace Reinforcements
                     }
                 }
             }
+            return Task.CompletedTask;
         }
 
         private static void retreatingBug() //theres a bug that enemies retreat forever
@@ -1804,6 +2032,8 @@ namespace Reinforcements
 
             lockEnemySpawnNewReinforcements = false;
             lockAllySpawnNewReinforcements = false;
+            lockSpawnOGAllyReinforcements = false;
+            lockSpawnOGEnemyReinforcements = false;
             calculateNextPartyLock = false;
 
             if (!OriginalAllyReinforcements.IsEmpty())
