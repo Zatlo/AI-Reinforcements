@@ -4,3 +4,4 @@ C:\Users\Zatlo\source\repos\Reinforcements\Reinforcements\obj\Debug\Reinforcemen
 C:\Users\Zatlo\source\repos\Reinforcements\Reinforcements\obj\Debug\Reinforcements.dll
 C:\Users\Zatlo\source\repos\Reinforcements\Reinforcements\obj\Debug\Reinforcements.pdb
 C:\Users\Zatlo\source\repos\Reinforcements\Reinforcements\obj\Debug\Reinforcements.csprojAssemblyReference.cache
+C:\Users\Zatlo\source\repos\Reinforcements\Reinforcements\obj\Debug\Reinforcements.csproj.CopyComplete
