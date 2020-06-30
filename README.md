@@ -1,2 +1,2 @@
 # ai-reinforcements
-kevins land
+Bannerlord Mod AI Reinforcements
