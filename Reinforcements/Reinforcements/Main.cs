@@ -1,12 +1,4 @@
-﻿/*using MCM.Abstractions;
-//using System.Configuration;
-///MCMv3
-using MCM.Abstractions.Attributes;
-using MCM.Abstractions.Attributes.v2;
-using MCM.Abstractions.Settings.Base.Global;
-//using Bannerlord.UIExtenderEx;
-using MCM.Abstractions.Settings.Formats;*/
-using MCM.Abstractions;
+﻿using MCM.Abstractions;
 using MCM.Abstractions.Attributes;
 using MCM.Abstractions.Attributes.v2;
 using MCM.Abstractions.Settings.Base.Global;
@@ -24,6 +16,7 @@ using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.MountAndBlade.Missions.Handlers;
 using TaleWorlds.MountAndBlade.Source.Missions;
+//using System.Reflection;
 
 namespace Reinforcements
 {
@@ -455,7 +448,7 @@ namespace Reinforcements
         private bool _useStandardOptionScreen = false;
 
         public override string Id => "AIReinforcements";
-        public override string DisplayName => $"AI Reinforcements. {typeof(MCMUISettings).Assembly.GetName().Version.ToString(3)}";
+        public override string DisplayName => $"AI Reinforcements. 2.4.0";
         public override string FolderName => "Reinforcements";
         public override string Format => "json";
 
@@ -490,6 +483,10 @@ namespace Reinforcements
         [SettingPropertyBool("Allow Enemy Caravan Reinforcements", Order = 4, RequireRestart = false, HintText = "Allows caravan allies to assist them")]
         [SettingPropertyGroup("Main Settings/Options/Reinforcements")]
         public bool SettingEnemyCaravanReinforcements { get; set; } = true;
+
+        [SettingPropertyBool("All Bandits are one!", Order = 5, RequireRestart = false, HintText = "All bandits will reinforce each other")]
+        [SettingPropertyGroup("Main Settings/Options/Reinforcements")]
+        public bool SettingAmIBandit { get; set; } = false;
 
 
         [SettingPropertyFloatingInteger("Setting PlayerJoinRatio", 0f, 2f, "#0%", Order = 2, RequireRestart = false, HintText = "0 = always join, 100 = same amount of soldiers to enemy, 200 = twice")]
@@ -637,22 +634,8 @@ namespace Reinforcements
             CampaignEvents.MissionTickEvent.AddNonSerializedListener(this, new Action<float>(one =>
             { //mission tick
 
-                /*if (modActive == false)
-                    return;*/
-
-                /*if (Mission.Current.IsFieldBattle)
-                {
-                    //MapEvent.PlayerMapEvent.DefenderSide.RecalculateMemberCountOfSide();
-
-                    if ((Mission.Current.PlayerTeam.ActiveAgents.Count() < 1 || Mission.Current.PlayerEnemyTeam.ActiveAgents.Count() < 1) && stopRepeat == false)
-                    {
-                        //MapEvent.PlayerMapEvent.CheckIfOneSideHasLost();
-                        stopRepeat = true;
-                        //CustomBattleEndLogic temp = new CustomBattleEndLogic();
-                        //temp.checkIfEnd();
-                    }
-                }*/
-                if (Mission.Current.Time < 10.0f)
+                
+                if (Mission.Current.Time < 10.0f && Mission.Current.IsFieldBattle)
                     return;
 
                 try
@@ -858,6 +841,7 @@ namespace Reinforcements
             for (int i = 0; i <= nearyParties.Count() - 1; i++)
             {
                 MobileParty temp = nearyParties.ElementAt(i);
+                //hello
                 if ((temp.MapFaction == enemyParty.MapFaction) && IsWithinInvoledParties(currentInvolvedParties, temp) == false)
                 {
                     if ((temp.IsLordParty || temp.IsBandit) && temp.MapEvent == null)
@@ -876,6 +860,35 @@ namespace Reinforcements
                         AllyNearbyParties.Add(temp);
                     }
                 }
+                else if(enemyParty.MobileParty.IsBandit && temp.IsBandit && IsWithinInvoledParties(currentInvolvedParties, temp) == false && MCMUISettings.Instance.SettingAmIBandit)
+                {
+                    System.Diagnostics.Debug.WriteLine("Enemy " + temp.Name.ToString() + " " + temp.GetTrackDistanceToMainAgent() + " " + temp.Party.NumberOfHealthyMembers);
+
+                    EnemyNearbyParties.Add(temp);
+                }
+                /*else if (enemyParty.MobileParty.IsBandit  && temp.IsBandit && IsWithinInvoledParties(currentInvolvedParties, temp) == false) //bandit militias conflict
+                {
+                    if (temp.LeaderHero == null && temp.MapEvent == null)
+                    {
+                        if(enemyParty.LeaderHero == null)
+                        {
+                            continue;
+                        }
+                        else if (enemyParty.LeaderHero.Clan.Name.ToString() == temp.MapFaction.Name.ToString())
+                        {
+                            System.Diagnostics.Debug.WriteLine("Enemy " + temp.Name.ToString() + " " + temp.GetTrackDistanceToMainAgent() + " " + temp.Party.NumberOfHealthyMembers);
+
+                            EnemyNearbyParties.Add(temp);
+                        }
+                    }
+                    else if (enemyParty.MapFaction.Name.ToString() == temp.LeaderHero.Clan.Name.ToString())
+                    {
+                        System.Diagnostics.Debug.WriteLine("Enemy " + temp.Name.ToString() + " " + temp.GetTrackDistanceToMainAgent() + " " + temp.Party.NumberOfHealthyMembers);
+
+                        EnemyNearbyParties.Add(temp);
+                    }
+                }*/
+                //hi :)
             }
 
             sortArmyListByDistance();
@@ -1028,9 +1041,9 @@ namespace Reinforcements
             //created a list of lists of agents to cycle and readd their origin here below
 
             // create the supplier for enemy parties list
-            jList = createPartySupplier(5000, Mission.Current.PlayerEnemyTeam.Side).ToList(); //calling this makes current members null
+            jList = createPartySupplier(25000, Mission.Current.PlayerEnemyTeam.Side).ToList(); //calling this makes current members null
             // stores the origins for all allies regardless of party - allied list
-            AList = createPartySupplier(5000, Mission.Current.PlayerTeam.Side).ToList(); //calling this makes current members null
+            AList = createPartySupplier(25000, Mission.Current.PlayerTeam.Side).ToList(); //calling this makes current members null
 
 
 
@@ -1118,13 +1131,88 @@ namespace Reinforcements
             await Task.Delay(1500);
 
             for (int i = 0; i < EnemyNearbyParties.Count(); i++)
-                MapEvent.PlayerMapEvent.AddInvolvedParty(EnemyNearbyParties.ElementAt(i).Party, Mission.Current.PlayerEnemyTeam.Side);
+            {
+                //MapEvent.PlayerMapEvent.AddInvolvedParty(EnemyNearbyParties.ElementAt(i).Party, Mission.Current.PlayerEnemyTeam.Side);
+                //check if it already contains
+                System.Diagnostics.Debug.WriteLine("parties " + i);
 
-            System.Diagnostics.Debug.WriteLine("Finished Involving all parties");
+                if (!OriginalInvolvedParties.Contains(EnemyNearbyParties.ElementAt(i).Party))
+                {
+                    //var classInstance = MapEvent.PlayerMapEvent.DefenderSide.LeaderParty.MapEventSide;
+                    if(Mission.Current.PlayerEnemyTeam == Mission.Current.AttackerTeam || Mission.Current.PlayerEnemyTeam == Mission.Current.AttackerAllyTeam)
+                    {
+                        EnemyNearbyParties.ElementAt(i).Party.MapEventSide = MapEvent.PlayerMapEvent.AttackerSide.LeaderParty.MapEventSide;
+
+                    }
+                    else
+                    {
+                        EnemyNearbyParties.ElementAt(i).Party.MapEventSide = MapEvent.PlayerMapEvent.DefenderSide.LeaderParty.MapEventSide;
+                    }
+                    //IEnumerable<PartyBase> testingReflection = MapEvent.PlayerMapEvent.InvolvedParties;
+                    System.Diagnostics.Debug.WriteLine("testing break");
+                    /*if (Mission.Current.PlayerEnemyTeam == Mission.Current.AttackerAllyTeam || Mission.Current.PlayerEnemyTeam == Mission.Current.AttackerTeam)
+                    {
+                        EnemyNearbyParties.ElementAt(i).Party.MapEventSide = MapEvent.PlayerMapEvent.AttackerSide.LeaderParty.MapEventSide;
+                        classInstance = MapEvent.PlayerMapEvent.AttackerSide.LeaderParty.MapEventSide;
+                    }
+                    var methods = classInstance.GetType().GetMethods(
+                        System.Reflection.BindingFlags.NonPublic |
+                        System.Reflection.BindingFlags.Public |
+                        System.Reflection.BindingFlags.Instance);
+
+
+                    var internalMethod = methods.FirstOrDefault
+                        ((m) => m.Name.Equals("AddPartyInternal",
+                        StringComparison.InvariantCulture));
+
+                    IReadOnlyCollection<PartyBase> obvs1 = classInstance.Parties;
+                    System.Diagnostics.Debug.WriteLine("Adding all parties");
+                    internalMethod.Invoke(classInstance, new object[] { EnemyNearbyParties.ElementAt(i).Party });*/
+                }
+            }
+
             for (int i = 0; i < AllyNearbyParties.Count(); i++)
             {
-                MapEvent.PlayerMapEvent.AddInvolvedParty(AllyNearbyParties.ElementAt(i).Party, Mission.Current.PlayerTeam.Side);
+                System.Diagnostics.Debug.WriteLine("parties " + i);
+                if (!OriginalInvolvedParties.Contains(AllyNearbyParties.ElementAt(i).Party))
+                {
+                    //MapEvent.PlayerMapEvent.AddInvolvedParty(AllyNearbyParties.ElementAt(i).Party, Mission.Current.PlayerTeam.Side);
+                    //var classInstance = MapEvent.PlayerMapEvent.DefenderSide.LeaderParty.MapEventSide;
+                    if (Mission.Current.PlayerTeam == Mission.Current.AttackerTeam || Mission.Current.PlayerTeam == Mission.Current.AttackerAllyTeam)
+                    {
+                        AllyNearbyParties.ElementAt(i).Party.MapEventSide = MapEvent.PlayerMapEvent.AttackerSide.LeaderParty.MapEventSide;
+
+                    }
+                    else
+                    {
+                        AllyNearbyParties.ElementAt(i).Party.MapEventSide = MapEvent.PlayerMapEvent.DefenderSide.LeaderParty.MapEventSide;
+                    }
+
+                    //IEnumerable<PartyBase> testingReflection = MapEvent.PlayerMapEvent.InvolvedParties;
+                    System.Diagnostics.Debug.WriteLine("testing break");
+                    /*if (Mission.Current.PlayerTeam == Mission.Current.AttackerAllyTeam || Mission.Current.PlayerTeam == Mission.Current.AttackerTeam)
+                    {
+                        AllyNearbyParties.ElementAt(i).Party.MapEventSide = MapEvent.PlayerMapEvent.AttackerSide.LeaderParty.MapEventSide;
+                        classInstance = MapEvent.PlayerMapEvent.AttackerSide.LeaderParty.MapEventSide;
+                    }
+                    var methods = classInstance.GetType().GetMethods(
+                        System.Reflection.BindingFlags.NonPublic |
+                        System.Reflection.BindingFlags.Public |
+                        System.Reflection.BindingFlags.Instance);
+
+
+                    var internalMethod = methods.FirstOrDefault
+                        ((m) => m.Name.Equals("AddPartyInternal",
+                        StringComparison.InvariantCulture));
+
+                    IReadOnlyCollection<PartyBase> obvs1 = MapEvent.PlayerMapEvent.DefenderSide.LeaderParty.MapEventSide.Parties;
+                    System.Diagnostics.Debug.WriteLine("Adding all parties");
+
+                    internalMethod.Invoke(classInstance, new object[] { AllyNearbyParties.ElementAt(i).Party });*/
+                }
             }
+            System.Diagnostics.Debug.WriteLine("Finished Involving all parties");
+
 
         }
 
@@ -1133,13 +1221,7 @@ namespace Reinforcements
             System.Diagnostics.Debug.WriteLine("Removing non Original parties");
             for (int i = 0; i < MapEvent.PlayerMapEvent.InvolvedParties.Count(); i++)
             {
-                if (!OriginalInvolvedParties.Contains(MapEvent.PlayerMapEvent.InvolvedParties.ElementAt(i)))
-                {
-                    System.Diagnostics.Debug.WriteLine("Removed party " + MapEvent.PlayerMapEvent.InvolvedParties.ElementAt(i).Name.ToString());
-
-                    MapEvent.PlayerMapEvent.RemoveInvolvedParty(MapEvent.PlayerMapEvent.InvolvedParties.ElementAt(i));
-                    i = 0;
-                }
+                //remove all non original parties from mapevent
             }
         }
 
@@ -1441,7 +1523,76 @@ namespace Reinforcements
             System.Diagnostics.Debug.WriteLine("Calcualting misk for " + list.ElementAt(0).Name.ToString());
             modActive = true;
             changeAmountMenAllowed();
-            MapEvent.PlayerMapEvent.AddInvolvedParty(list.ElementAt(0).Party, team.Side);
+
+            //MapEvent.PlayerMapEvent.AddInvolvedParty(list.ElementAt(0).Party, team.Side); // fix this line
+
+            
+            //var classInstance = MapEvent.PlayerMapEvent;
+            /*if (team == Mission.Current.AttackerAllyTeam || team == Mission.Current.AttackerTeam)
+            {
+                list.ElementAt(0).Party.MobileParty.MapEventSide = MapEvent.PlayerMapEvent.AttackerSide.LeaderParty.MapEventSide;
+            }
+            else
+            {
+                list.ElementAt(0).Party.MobileParty.MapEventSide = MapEvent.PlayerMapEvent.DefenderSide.LeaderParty.MapEventSide;
+            }*/
+
+                /*var invoketest1 = list.ElementAt(0).Party.MapEventSide;
+                System.Diagnostics.Debug.WriteLine("testing before");
+
+                var methods = classInstance.GetType().GetMethods(
+                    System.Reflection.BindingFlags.NonPublic |
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.Instance);
+                System.Diagnostics.Debug.WriteLine("testing between");
+
+                for (int x = 0; x < methods.Length; x++)
+                    System.Diagnostics.Debug.WriteLine("{0}: {1}", x, methods[x].Name);
+
+                System.Diagnostics.Debug.WriteLine("testing between 2");
+
+                var internalMethod = methods.FirstOrDefault
+                    ((m) => m.Name.Equals("AddInvolvedPartyInternal",
+                    StringComparison.InvariantCulture));
+
+                System.Diagnostics.Debug.WriteLine("testing between 3");
+
+                var invoketest2 = team.Side;
+                var invoketest3 = list.First().Party.Side;
+                System.Diagnostics.Debug.WriteLine("testing between 4");
+
+                internalMethod.Invoke(classInstance, new object[] { list.First().Party, team.Side });*/
+
+                /*System.Diagnostics.Debug.WriteLine("testing before");
+
+                var classInstance = MapEvent.PlayerMapEvent;
+                var methods = classInstance.GetType().GetMethods(
+                    System.Reflection.BindingFlags.NonPublic |
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.Instance);
+                System.Diagnostics.Debug.WriteLine("testing between");
+
+                for (int x = 0; x < methods.Length; x++)
+                    System.Diagnostics.Debug.WriteLine("{0}: {1}", x, methods[x].Name);
+
+                System.Diagnostics.Debug.WriteLine("testing between 2");
+
+                var internalMethod = methods.FirstOrDefault
+                    ((m) => m.Name.Equals("AddInvolvedPartyInternal",
+                    StringComparison.InvariantCulture));
+
+                System.Diagnostics.Debug.WriteLine("testing between 3");
+
+                var invoketest1 = list.ElementAt(0).Party;
+                var invoketest2 = team.Side;
+                System.Diagnostics.Debug.WriteLine("testing between 4");
+
+                internalMethod.Invoke(classInstance, new object[] { list.First().Party, team.Side });*/
+
+            //remove parties that didnt join
+            IEnumerable<PartyBase> testingReflection = MapEvent.PlayerMapEvent.InvolvedParties;
+            System.Diagnostics.Debug.WriteLine("testing break");
+
             moveEnemyPartiesRegardless(0, MapEvent.PlayerMapEvent.GetLeaderParty(team.Side).Position2D, list); //move AI party to their friendly neighbor position
             MobileParty newMobileParty = new MobileParty();
             newMobileParty = list.ElementAt(0);
@@ -1519,9 +1670,9 @@ namespace Reinforcements
 
 
             if (team == Mission.Current.PlayerEnemyTeam)
-                InformationManager.AddQuickInformation(new TextObject("Enemy " + currentParty.Name.ToString() + " has joined the battle!"));
+                InformationManager.AddQuickInformation(new TextObject("Enemy " + currentParty.Name.ToString() + " has joined the battle with " + currentParty.Party.MemberRoster.TotalHealthyCount + " Troops!"));
             else
-                InformationManager.AddQuickInformation(new TextObject("Ally " + currentParty.Name.ToString() + " has joined the battle!"));
+                InformationManager.AddQuickInformation(new TextObject("Ally " + currentParty.Name.ToString() + " has joined the battle with " + currentParty.Party.MemberRoster.TotalHealthyCount + " Troops!"));
 
 
             Mission.Current.MakeSound(SoundEvent.GetEventIdFromString("event:/ui/mission/horns/attack"), Mission.Current.PlayerEnemyTeam.ActiveAgents.GetRandomElement().Position, true, true, 0, 0);
@@ -1817,85 +1968,8 @@ namespace Reinforcements
             //return (((distance / 2.3f) * 90000.0f) / 1000.0f) / 1.9f;
             return distance * (MCMUISettings.Instance.SettingTimeToSpawnRatio*10);
         }
-        private void makeEnemyAgentUnsafe()
-        {
-            System.Diagnostics.Debug.WriteLine("makeunsafe enemy");
-            holdEnemyAgent.SetInvulnerable(false);
-            holdEnemyAgent.SetIsAIPaused(false);
-            holdEnemyAgent.Controller = (Agent.ControllerType)1;
-            holdEnemyAgent.Retreat();
-        }
 
 
-        private void makeEnemyAgentSafe()
-        {
-
-
-            holdEnemyAgent = Mission.Current.PlayerEnemyTeam.ActiveAgents.GetRandomElement();
-            holdEnemyAgent.SetInvulnerable(true);
-            holdEnemyAgent.SetIsAIPaused(true);
-            holdEnemyAgent.Controller = 0;
-            Vec3 tempVec = new Vec3(-300, -300, 50);
-            holdEnemyAgent.TeleportToPosition(tempVec);
-        }
-
-        private void makePlayerAgentUnsafe()
-        {
-            System.Diagnostics.Debug.WriteLine("makeunsafe player");
-            holdPlayerAgent.SetInvulnerable(false);
-            holdPlayerAgent.SetIsAIPaused(false);
-            holdPlayerAgent.Controller = (Agent.ControllerType)1;
-            holdPlayerAgent.Retreat();
-        }
-
-
-        private void makePlayerAgentSafe()
-        {
-            holdPlayerAgent = Mission.Current.PlayerTeam.ActiveAgents.GetRandomElement();
-            while (holdPlayerAgent == Mission.Current.MainAgent)
-            {
-                holdPlayerAgent = Mission.Current.PlayerTeam.ActiveAgents.GetRandomElement();
-            }
-            holdPlayerAgent.SetInvulnerable(true);
-            holdPlayerAgent.SetIsAIPaused(true);
-            holdPlayerAgent.Controller = 0;
-            Vec3 tempVec = new Vec3(-300, -300, 50);
-            holdPlayerAgent.TeleportToPosition(tempVec);
-        }
-
-
-
-        private static void tryMissionAgentSpawnLogic()
-        {
-            MissionLogic currentLogic = Mission.Current.MissionLogics.ElementAt(10);
-            MissionAgentSpawnLogic currentSpawnLogic = currentLogic as MissionAgentSpawnLogic;
-            currentSpawnLogic.CheckReinforcement(100);
-            int k = currentSpawnLogic.NumberOfActiveAttackerTroops;
-            int l = currentSpawnLogic.NumberOfActiveDefenderTroops;
-            currentSpawnLogic.IsSideDepleted(Mission.Current.PlayerTeam.Side);
-            currentSpawnLogic.CheckReinforcement(100);
-
-
-
-
-            BattleEndLogic newEL = new BattleEndLogic();
-            //ewEL.
-            //currentSpawnLogic.
-
-
-            MissionLogic End = Mission.Current.MissionLogics.ElementAt(5);
-            BattleEndLogic end2 = End as BattleEndLogic;
-            //end2.
-
-
-            //MissionAgentSpawnLogic newMASL = new MissionAgentSpawnLogic(newSuplier, Mission.Current.PlayerTeam.Side);
-            /*Mission.Current.AddMissionBehaviour(newMASL);
-            newMASL.InitWithSinglePhase(10,10,10,10,true,true);
-            newMASL.SetSpawnTroops(Mission.Current.PlayerEnemyTeam.Side, true);*/
-            //testing = true;
-            int h0 = 2;
-            //newMASL.
-        }
 
 
         private bool withinPartiesFighting(TextObject party)
@@ -1963,41 +2037,6 @@ namespace Reinforcements
                 }
             }
             return Task.CompletedTask;
-        }
-
-        private static void retreatingBug() //theres a bug that enemies retreat forever
-        {
-
-            if (Mission.Current.PlayerTeam != null)
-            {
-                for (int i = 0; i < Mission.Current.PlayerTeam.ActiveAgents.Count(); i++)
-                {
-                    if (!Mission.Current.IsPositionInsideBoundaries(Mission.Current.PlayerTeam.ActiveAgents.ElementAt(i).Position.AsVec2) && Mission.Current.PlayerTeam.ActiveAgents.ElementAt(i) != holdPlayerAgent)
-                    {
-                        Mission.Current.PlayerTeam.ActiveAgents.ElementAt(i).TeleportToPosition(Mission.Current.GetClosestBoundaryPosition(Mission.Current.PlayerTeam.ActiveAgents.ElementAt(i).Position.AsVec2).ToVec3());
-                        //Mission.Current.PlayerEnemyTeam.MasterOrderController.SetOrderWithAgent((OrderType)4, Mission.Current.PlayerEnemyTeam.ActiveAgents.ElementAt(i));
-
-                        System.Diagnostics.Debug.WriteLine("Retreated Friendly Agent");
-                    }
-                }
-            }
-            else { System.Diagnostics.Debug.WriteLine("PlayerTeam is null"); }
-
-
-            if (Mission.Current.PlayerEnemyTeam != null)
-            {
-                for (int i = 0; i < Mission.Current.PlayerEnemyTeam.ActiveAgents.Count(); i++)
-                {
-                    if (!Mission.Current.IsPositionInsideBoundaries(Mission.Current.PlayerEnemyTeam.ActiveAgents.ElementAt(i).Position.AsVec2) && Mission.Current.PlayerEnemyTeam.ActiveAgents.ElementAt(i) != holdEnemyAgent)
-                    {
-                        Mission.Current.PlayerEnemyTeam.ActiveAgents.ElementAt(i).TeleportToPosition(Mission.Current.GetClosestBoundaryPosition(Mission.Current.PlayerEnemyTeam.ActiveAgents.ElementAt(i).Position.AsVec2).ToVec3());
-                        //Mission.Current.PlayerEnemyTeam.MasterOrderController.SetOrderWithAgent((OrderType)4, Mission.Current.PlayerEnemyTeam.ActiveAgents.ElementAt(i));
-                        System.Diagnostics.Debug.WriteLine("Retreated Enemy Agent");
-                    }
-                }
-            }
-            else { System.Diagnostics.Debug.WriteLine("PlayerEnemyTeam is null"); }
-            //System.Diagnostics.Debug.WriteLine("end retrreatingBug");
         }
 
 
