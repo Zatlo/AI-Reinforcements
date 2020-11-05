@@ -31,38 +31,67 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="0Harmony">
-      <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\Bannerlord.MBOptionScreen\bin\Win64_Shipping_Client\0Harmony.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Bannerlord.UIExtenderEx">
-      <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\Bannerlord.MBOptionScreen\bin\Win64_Shipping_Client\Bannerlord.UIExtenderEx.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="EOSSDK-CSharp, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\Reinforcements\bin\Win64_Shipping_Client\EOSSDK-CSharp.dll</HintPath>
+      <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\EOSSDK-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="MCMv3">
-      <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\Bannerlord.MBOptionScreen\bin\Win64_Shipping_Client\MCMv3.dll</HintPath>
-    </Reference>
-    <Reference Include="MCMv3.Implementation.v3.1.6">
-      <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\Bannerlord.MBOptionScreen\bin\Win64_Shipping_Client\MCMv3.Implementation.v3.1.6.dll</HintPath>
+    <Reference Include="MCMv4, Version=4.1.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Bannerlord.MCM.4.1.2\lib\net472\MCMv4.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="MCMv3.UI.v3.1.6">
-      <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\Bannerlord.MBOptionScreen\bin\Win64_Shipping_Client\MCMv3.UI.v3.1.6.dll</HintPath>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=5.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.5.0.0-rc.2.20475.5\lib\net461\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xml" />
+    <Reference Include="Microsoft.Bcl.HashCode, Version=1.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.HashCode.1.1.0\lib\net461\Microsoft.Bcl.HashCode.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Serilog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>..\packages\Serilog.2.8.0\lib\net46\Serilog.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Serilog.Extensions.Logging, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>..\packages\Serilog.Extensions.Logging.3.0.1\lib\netstandard2.0\Serilog.Extensions.Logging.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Serilog.Sinks.File, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>..\packages\Serilog.Sinks.File.4.1.0\lib\net45\Serilog.Sinks.File.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Core">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.CompilerServices.Unsafe.4.5.3\lib\net461\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Xml.Linq">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Data.DataSetExtensions">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Microsoft.CSharp">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Data">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Net.Http">
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Xml">
+      <Private>False</Private>
+    </Reference>
     <Reference Include="TaleWorlds.BattlEye.Client">
       <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.BattlEye.Client.dll</HintPath>
       <Private>False</Private>
@@ -163,12 +192,20 @@
       <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.Diamond.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="TaleWorlds.MountAndBlade.GauntletUI">
+      <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\Native\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.GauntletUI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="TaleWorlds.MountAndBlade.GauntletUI.Widgets">
       <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.GauntletUI.Widgets.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="TaleWorlds.MountAndBlade.Helpers">
       <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.Helpers.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="TaleWorlds.MountAndBlade.View">
+      <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\Native\bin\Win64_Shipping_Client\TaleWorlds.MountAndBlade.View.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="TaleWorlds.MountAndBlade.ViewModelCollection">
@@ -227,12 +264,18 @@
       <HintPath>D:\SteamFolder\steamapps\common\Mount &amp; Blade II Bannerlord\bin\Win64_Shipping_Client\TaleWorlds.TwoDimension.Standalone.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="WindowsBase" />
+    <Reference Include="WindowsBase">
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
     <Compile Include="MyQueue.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
